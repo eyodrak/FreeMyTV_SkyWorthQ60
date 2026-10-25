@@ -119,6 +119,17 @@
             </intent-filter>
         </activity>
 
+        <!-- The security cameras (config.properties: cameras), full screen from the home screen's Cameras button. -->
+        <activity
+            android:name=".CameraActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="Cameras"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- Fire TV: the same home screen opened as a regular app (no resumeWhilePausing, which leaves window focus on
              Amazon's paused launcher on Fire OS). -->
         <activity

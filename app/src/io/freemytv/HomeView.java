@@ -146,7 +146,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring[] cardFocus = new Spring[3];
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
-    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lDate, lClock, lWeather, lClockQuote;
+    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lDate, lClock, lWeather, lClockQuote, lHour, lHourTemp;
     private Shader lightGradient;
 
     // Shelf
@@ -238,6 +238,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int w, h;
     private float k = 1;
     private String clockText = "", dateText = "", weatherLine = "";
+    /** The next hours under the clock's weather line (no picks, no quotes): time and temperature. */
+    private final String[] clockHourText = new String[6], clockHourTempText = new String[6];
     /** "Off in 42 min" next to the round buttons while the sleep timer runs (Settings > Sleep Timer); "" otherwise. */
     private String sleepText = "";
     private long weatherLineAt = -1;
@@ -633,6 +635,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lClock.setLetterSpacing(-0.01f);
         lWeather = Ui.text(Ui.medium, 34 * k, L_DIM);
         lClockQuote = Ui.numbers(Ui.medium, 28 * k, L_DIM);
+        lHour = Ui.numbers(Ui.medium, 24 * k, L_FAINT);
+        lHour.setTextAlign(Paint.Align.CENTER);
+        lHourTemp = Ui.numbers(Ui.medium, 30 * k, L_DIM);
+        lHourTemp.setTextAlign(Paint.Align.CENTER);
         lightGradient = null;
         buttonPaint = Ui.text(Ui.semibold, 29 * k, INK);
         capsuleText = Ui.numbers(Ui.medium, 29 * k, 0xF2FFFFFF);
@@ -1010,6 +1016,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lClock.setColor(tone(L_INK, WHITE));
         lWeather.setColor(tone(L_DIM, 0xFF98989D));
         lClockQuote.setColor(tone(L_DIM, 0xFF98989D));
+        lHour.setColor(tone(L_FAINT, 0xB8FFFFFF));
+        lHourTemp.setColor(tone(L_DIM, 0xFF98989D));
         staleQuote.setColor(tone(L_FAINT, 0x99FFFFFF));
     }
 
@@ -3019,12 +3027,26 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             weatherLineLanguage = Ui.language;
             weatherLine = HomeData.degrees(wx.temp) + "  " + HomeData.condition(wx.code, wx.isDay) + "   "
                     + HomeData.highLow(wx, "  ");
+            for (int i = 0; i < wx.hours.size() && i < 6; i++) {
+                clockHourText[i] = HomeData.hour(wx.hours.get(i));
+                clockHourTempText[i] = HomeData.degrees(wx.hourTemp.get(i));
+            }
         }
         float size = 40 * k, base = L_WEATHER_BASE * k;
         String symbol = Symbols.weather(wx.code, wx.isDay);
         float sw = Symbols.width(getContext(), symbol, size);
         Symbols.draw(getContext(), c, symbol, x + sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
         c.drawText(weatherLine, x + sw + 16 * k, base, lWeather);
+        // The next 6 hours, in columns under the weather line, where the quotes go when there are coins.
+        if (HomeData.coinCount() > 0) return;
+        float hw = 118 * k;
+        for (int i = 0; i < wx.hours.size() && i < 6; i++) {
+            float hc = x + hw * (i + 0.5f);
+            c.drawText(clockHourText[i], hc, (L_WEATHER_BASE + 64) * k, lHour);
+            Symbols.draw(getContext(), c, Symbols.weather(wx.hourCode.get(i), wx.hourDay.get(i)), hc,
+                    (L_WEATHER_BASE + 100) * k, 30 * k, lHourTemp.getColor());
+            c.drawText(clockHourTempText[i], hc, (L_WEATHER_BASE + 150) * k, lHourTemp);
+        }
     }
 
     /**

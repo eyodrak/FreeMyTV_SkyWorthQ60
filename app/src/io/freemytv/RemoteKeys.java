@@ -45,7 +45,26 @@ final class RemoteKeys {
     static final boolean STEM_NETFLIX = VESTEL || FORMOVIE;
 
     static boolean supported() {
-        return TCL || STEM_NETFLIX || KTC || SONY || XIAOMI || HISENSE;
+        return TCL || STEM_NETFLIX || KTC || SONY || XIAOMI || HISENSE || SKYWORTH;
+    }
+
+    /**
+     * Skyworth (SWTV, Android 14): Exit is KEYCODE_TV, which the TV's BootBroadcastReceiverTv turns into live TV; Daily
+     * Hub is BUTTON_16, which SkwGlobalKeyReceiver turns into its Daily Hub app (BUTTON_16 is also its other app
+     * buttons: only the scan code tells them apart). The remote sends other scan codes over Bluetooth and over IR
+     * (right after the TV starts), so each button has two.
+     */
+    static final boolean SKYWORTH = is("Skyworth");
+    private static final int[] SKYWORTH_EXIT_SCANS = {174, 365}, SKYWORTH_DAILY_HUB_SCANS = {733, 240};
+
+    /** The key filter (RemoteKeyService) has something to do on this TV. */
+    static boolean filtering() {
+        return supported();
+    }
+
+    private static boolean any(int[] list, int value) {
+        for (int v : list) if (v == value) return true;
+        return false;
     }
 
     private static boolean is(String maker) {
@@ -66,15 +85,28 @@ final class RemoteKeys {
                 || keyCode == KeyEvent.KEYCODE_BUTTON_9)) {
             keyCode = Prefs.SONY_KEY + e.getScanCode();
         }
+        if (SKYWORTH) {
+            keyCode = keyCode == KeyEvent.KEYCODE_TV && any(SKYWORTH_EXIT_SCANS, e.getScanCode()) ? Prefs.KEY_SKYWORTH_EXIT
+                    : keyCode == KeyEvent.KEYCODE_BUTTON_16 && any(SKYWORTH_DAILY_HUB_SCANS, e.getScanCode())
+                    ? Prefs.KEY_SKYWORTH_DAILY_HUB : 0;
+        }
         boolean ours = false;
         for (int key : Prefs.KEYS) ours |= key == keyCode;
         if (!ours) return false;
         String pkg = Prefs.keyApp(keyCode);
         if (pkg.isEmpty()) return false;   // "Nothing": the key goes on as if we weren't here
         if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+            if (pkg.equals(Prefs.BACK)) {
+                if (c instanceof android.accessibilityservice.AccessibilityService) {
+                    ((android.accessibilityservice.AccessibilityService) c).performGlobalAction(
+                            android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
+                }
+                return true;
+            }
             // Our own package means the home screen in use (Xiaomi's Mi button): ours, or the TV's own after the
             // watchdog handed it back. Not the settings app our launcher icon opens.
-            Intent intent = pkg.equals(HomeMode.PKG) || pkg.equals(Prefs.ALL_APPS)
+            Intent intent = pkg.equals(Prefs.CAMERAS) ? new Intent(c, CameraActivity.class)
+                    : pkg.equals(HomeMode.PKG) || pkg.equals(Prefs.ALL_APPS)
                     ? new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
                     : launchIntent(c.getPackageManager(), pkg);
             if (pkg.equals(Prefs.ALL_APPS)) intent.putExtra(HomeActivity.EXTRA_ALL_APPS, true);

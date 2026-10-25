@@ -58,6 +58,8 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5, DEVICE = 6;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** The security cameras, full screen (CameraActivity; only with cameras in config.properties). */
+    static final int CAMERA = 8;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -234,16 +236,18 @@ final class HomeApps {
 
     // MARK: - Top buttons (the round ones at the top right)
 
-    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings";
-    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS, TOP_SETTINGS));
+    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_CAMERA = "camera", TOP_SETTINGS = "settings";
+    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS, TOP_CAMERA, TOP_SETTINGS));
     static final int MAX_TOP = TOP_DEFAULT.size();
 
-    /** The keys of the top buttons, in order (Settings > Top Buttons; by default Live TV, HDMI Inputs, Settings). */
+    /** The keys of the top buttons, in order (Settings > Top Buttons; by default Live TV, HDMI Inputs, Cameras, Settings). */
     static List<String> topButtonKeys() {
         List<String> saved = Prefs.topButtons();
-        if (saved == null) return TOP_DEFAULT;
         List<String> keys = new ArrayList<>();
-        for (String key : saved) if (TOP_DEFAULT.contains(key) && !keys.contains(key)) keys.add(key);
+        for (String key : saved == null ? TOP_DEFAULT : saved) {
+            if (key.equals(TOP_CAMERA) && CameraActivity.cameras().isEmpty()) continue;   // no cameras in config.properties
+            if (TOP_DEFAULT.contains(key) && !keys.contains(key)) keys.add(key);
+        }
         return keys;
     }
 
@@ -258,6 +262,7 @@ final class HomeApps {
         switch (key) {
             case TOP_LIVE: return action(LIVE_TV, TOP_LIVE, Ui.tr("light|Live TV"), "live_tv");
             case TOP_INPUTS: return action(INPUTS, TOP_INPUTS, Ui.tr("HDMI Inputs"), "hdmi");
+            case TOP_CAMERA: return action(CAMERA, TOP_CAMERA, Ui.tr("light|Camera"), "videocam");
             default: return action(SETTINGS, TOP_SETTINGS, Ui.tr("light|Settings"), "settings");
         }
     }
@@ -265,7 +270,10 @@ final class HomeApps {
     /** What can go in the top buttons, as {key, name}. */
     static List<String[]> topCandidates() {
         List<String[]> out = new ArrayList<>();
-        for (String key : TOP_DEFAULT) out.add(new String[] {key, topButton(key).label});
+        for (String key : TOP_DEFAULT) {
+            if (key.equals(TOP_CAMERA) && CameraActivity.cameras().isEmpty()) continue;
+            out.add(new String[] {key, topButton(key).label});
+        }
         return out;
     }
 
@@ -303,6 +311,7 @@ final class HomeApps {
     static List<Item> drawerShortcuts(Context c) {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
+        if (!CameraActivity.cameras().isEmpty()) items.add(shortcut(CAMERA, "camera", Ui.tr("Cameras"), "videocam"));
         items.add(shortcut(SETTINGS, "settings", Ui.tr("Home Settings"), "settings"));
         items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "tv_settings"));
         // HY300 projectors (Hotack, Allwinner H713): keystone and focus live in the maker's settings app, and the
@@ -546,6 +555,9 @@ final class HomeApps {
                 break;
             case ANDROID_SETTINGS:
                 intent = new Intent(Settings.ACTION_SETTINGS);
+                break;
+            case CAMERA:
+                intent = new Intent().setComponent(new ComponentName(a, CameraActivity.class));
                 break;
             case DEVICE:
                 // A fresh task: else Back walks through whatever the maker's settings app had open before

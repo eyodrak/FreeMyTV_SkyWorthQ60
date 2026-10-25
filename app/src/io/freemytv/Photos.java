@@ -30,8 +30,9 @@ import java.util.concurrent.Executors;
  * next time the home screen, the screensaver or the settings open, each one is imported once into the app's private
  * folder, turned upright (EXIF), cropped to 16:9 and re-encoded at the screensaver's size (which also drops its GPS and
  * other tags), and the original is deleted. While they are on (Home Settings > My Photos), the screensaver shows them
- * instead of the picks' photos, in the order they came, and without picks (no TMDB key) one of them is the home
- * screen's background, a new one every hour.
+ * instead of the picks' photos, in the order they came, and without picks (no TMDB key) the home screen's background
+ * is the last one sent; with two or more, the last two take turns: the earlier one by day (07:00 to 17:29, the TV's
+ * time), the last one by night (17:30 to 06:59).
  */
 final class Photos {
     private Photos() {}
@@ -122,9 +123,16 @@ final class Photos {
     private static File built, building;
     private static Backdrop backdrop;
 
+    /** 07:00 to 17:29 on the TV's clock: the day photo's time (the home screen asks every 15 s). */
+    private static boolean daytime() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int minute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
+        return minute >= 7 * 60 && minute < 17 * 60 + 30;
+    }
+
     /**
-     * This hour's photo, ready to draw as the home screen's background, or null (off, or the first one still being
-     * built). When the hour changes, the previous one stays until the new one is ready; then `ready` runs.
+     * The background photo for now (day or night), ready to draw, or null (off, or the first one still being built).
+     * When it changes, the previous one stays until the new one is ready; then `ready` runs.
      */
     static synchronized Backdrop backdrop(Context c, Runnable ready) {
         if (!on(c)) {
@@ -133,7 +141,7 @@ final class Photos {
             return null;
         }
         List<File> list = files(c);
-        File want = list.get((int) ((System.currentTimeMillis() / 3_600_000L) % list.size()));
+        File want = list.get(list.size() - 1 - (list.size() > 1 && daytime() ? 1 : 0));
         if (!want.equals(built) && !want.equals(building)) {
             building = want;
             worker.execute(() -> {

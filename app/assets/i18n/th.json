@@ -240,5 +240,16 @@
  "{n} min ago": "{n} นาทีที่แล้ว",
  "{n} ms": "{n} ms",
  "{time} left": "เหลือ {time}",
- "← → to move · OK to drop · Back to cancel": "← → ย้าย · OK วาง · ย้อนกลับ ยกเลิก"
+ "← → to move · OK to drop · Back to cancel": "← → ย้าย · OK วาง · ย้อนกลับ ยกเลิก",
+ "Camera": "กล้อง",
+ "light|Camera": "กล้องวงจรปิด",
+ "Cameras": "กล้องวงจรปิด",
+ "Can't connect to the camera. Trying again…": "เชื่อมต่อกล้องไม่ได้ กำลังลองใหม่…",
+ "Can't connect to the camera. Check its address and password, then press OK.": "เชื่อมต่อกล้องไม่ได้ ตรวจสอบที่อยู่และรหัสผ่าน แล้วกด OK",
+ "Exit button": "ปุ่ม Exit",
+ "Daily Hub button": "ปุ่ม Daily Hub",
+ "Skyworth default": "ค่าเริ่มต้นของ Skyworth",
+ "Home screen": "หน้าหลัก",
+ "Back": "ย้อนกลับ",
+ "Skyworth default: Exit opens live TV, Daily Hub opens Daily Hub.": "ค่าเริ่มต้นของ Skyworth: Exit เปิดทีวีสด, Daily Hub เปิด Daily Hub"
 }

@@ -245,14 +245,26 @@ final class HomeMode {
     /**
      * The remote's app buttons (RemoteKeys) need an accessibility service that only filters those keys. It is on only
      * on TCL, Vestel, KTC, Sony, Xiaomi and Hisense TVs (and Formovie projectors) in Free My TV mode, and goes off with Original. Android turns it off when this app is updated, so the
-     * boot check and an update turn it back on.
+     * boot check and an update turn it back on, and so does the home screen when it finds it off (a force stop cancels
+     * the update's job).
      */
     static void ensureRemoteService(Context c, long delayMs) {
-        if (RemoteKeys.supported()) ModeJob.schedule(c, ModeJob.REMOTE, null, delayMs);
+        if (RemoteKeys.filtering()) ModeJob.schedule(c, ModeJob.REMOTE, null, delayMs);
+    }
+
+    private static long remoteCheckedAt;
+
+    /** The home screen showing: the service back on if it went off (at most once a minute; one settings read). */
+    static void ensureRemoteServiceIfOff(Context c) {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (!RemoteKeys.filtering() || now - remoteCheckedAt < 60_000) return;
+        remoteCheckedAt = now;
+        String on = android.provider.Settings.Secure.getString(c.getContentResolver(), "enabled_accessibility_services");
+        if (on == null || !on.contains(REMOTE_SERVICE)) ensureRemoteService(c, 0);
     }
 
     static void ensureRemoteServiceNow(Context app) {
-        if (!RemoteKeys.supported() || !FREE.equals(state(app).optString("mode"))) return;
+        if (!RemoteKeys.filtering() || !FREE.equals(state(app).optString("mode"))) return;
         try (Adb adb = Adb.connect(app, 10_000, null)) {
             remoteService(app, adb, true);
         } catch (IOException e) {
@@ -413,7 +425,7 @@ final class HomeMode {
             s.put("mode", FREE).put("since", System.currentTimeMillis()).put("homeReverted", false)
                     .put("disabled", new JSONArray(sorted(disabled))).put("setupHome", setupHome);
             save(c, s);
-            if (RemoteKeys.supported()) {
+            if (RemoteKeys.filtering()) {
                 try {
                     remoteService(c, adb, true);
                 } catch (IOException e) {
