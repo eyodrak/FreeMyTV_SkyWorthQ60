@@ -15,6 +15,11 @@ Open source. Built with Claude Code. One button to undo.
 
 </div>
 
+> [!NOTE]
+> **Skyworth Q60 Edition.** This fork adds security cameras (RTSP, full screen), an hourly forecast under the clock,
+> a sharp day/night photo background and settings for Skyworth's Exit and Daily Hub buttons.
+> **[อ่านคู่มือฟีเจอร์ทั้งหมด (ภาษาไทย) → SKYWORTH.md](SKYWORTH.md)**
+
 ## What you get
 
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
